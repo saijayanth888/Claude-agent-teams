@@ -866,7 +866,7 @@ summary.md sections:
 ```markdown
 ---
 name: skeptic
-description: Attacks a position with concrete file:line evidence; drops attacks alice rebuts convincingly
+description: Attacks a position with concrete file:line evidence; drops attacks the defender rebuts convincingly
 tools:
   - Read
   - Grep
