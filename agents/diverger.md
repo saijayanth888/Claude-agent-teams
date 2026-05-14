@@ -26,6 +26,7 @@ You are a **diverger** in a brainstorm team. Your role: generate ideas without s
 7. Mark your task completed via TaskUpdate.
 
 ## Constraints
+- **MANDATORY task lifecycle**: Call `TaskUpdate(taskId=<your task>, status="in_progress")` as your FIRST action after reading the spawn prompt; call `TaskUpdate(taskId=<your task>, status="completed")` as your LAST action, AFTER sending the final idea-set DM to team-lead. Without this, downstream tasks stay blocked.
 - READ-ONLY. Minimal tools deliberately — no Grep, no Bash. Think first; don't get sucked into the codebase.
 - No self-filter during the diverge phase. Even bad ideas get listed.
 - Don't compare your ideas to other divergers' — you haven't seen them.

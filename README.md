@@ -2,7 +2,7 @@
 
 User-global library of pre-baked Claude Code agent-team templates and reusable role definitions. Replaces ad-hoc subagent prompts with structured teams that have known communication patterns, explicit circuit breakers, and per-project output archives.
 
-**Status**: v1 design approved · pending implementation · 2026-05-14
+**Status**: v1 implementation complete · post-impl refinements applied 2026-05-14 PM (silence-breaker, inbox-path archiving, DM-based plan-approval, forced-close on verdict, team_file_path normalization)
 
 ---
 
@@ -14,8 +14,9 @@ The library is **project-agnostic**. The same templates serve any codebase. Proj
 
 ## Browse
 
-- [Design spec](docs/specs/2026-05-14-claude-code-agent-teams-design.md) — 16 sections, full v1 architecture + G1–G5 patches + §3.4 hierarchy framing
-- [Architecture diagram](docs/diagrams/agent-teams-architecture.svg) — 5 panels, dYdX-style dark monospace
+- [PLAYBOOK](PLAYBOOK.md) — the lead's 6-stage algorithm; authoritative for all team runs
+- [Design spec](docs/specs/2026-05-14-claude-code-agent-teams-design.md) — 16 sections, full v1 architecture + G1–G5 patches + §3.4 hierarchy framing (see appendix D for post-impl refinements)
+- [Architecture diagram](docs/diagrams/agent-teams-architecture.svg) — 6 panels, dark monospace (Panel 6 = invocation options)
 
 ## The hierarchy (§3.4)
 
@@ -87,7 +88,10 @@ claude --version
 │   ├── README.md
 │   ├── PLAYBOOK.md
 │   └── teams/
-└── teams/                        (active runtime state; auto-managed; never hand-edit)
+├── teams/<team_name>/            (active runtime state; auto-managed)
+│   ├── config.json               (members list)
+│   └── inboxes/<name>.json       (per-teammate DM log — read by lead at Stage 5)
+└── tasks/<team_name>/            (active task list state)
 
 <any-project>/.claude/
 ├── agents/                       (project-scope role overrides — G3 patch)
@@ -95,13 +99,47 @@ claude --version
     └── 2026-05-14T10-45_debate_rg-wiring/
         ├── manifest.json
         ├── summary.md
-        ├── members/
-        └── comms/
+        ├── members/<role>.md
+        └── comms/transcript.md   (assembled from ~/.claude/teams/.../inboxes/)
 ```
+
+## How to invoke a team
+
+Claude Code does **not** auto-load `PLAYBOOK.md` when you say "run the X team". One of the three options below must be in place, or the lead will improvise instead of following the 6-stage orchestration. See [diagram Panel 6](docs/diagrams/agent-teams-architecture.svg) for the visual.
+
+### Option A — Project `CLAUDE.md` pointer (recommended, works today)
+
+One-time setup per project. Add this section to `<project>/CLAUDE.md`:
+
+```markdown
+## Agent Teams
+
+When the operator says "run the X team on Y" (where X is one of: research, debate, brainstorm, design-review, improvement), read `~/.claude/agent-team-templates/PLAYBOOK.md` and follow its 6-stage algorithm step by step. Do not improvise; the PLAYBOOK is authoritative.
+```
+
+After that, every invocation in this project is natural language: *"run the improvement team on the regime-config bugs"*.
+
+### Option B — Explicit per-invocation (works today, friction)
+
+No setup. Each invocation must include the PLAYBOOK pointer:
+
+> *"Follow `~/.claude/agent-team-templates/PLAYBOOK.md` and run the improvement team on the regime-config bugs."*
+
+Easy to forget the prefix; otherwise the lead won't follow the protocol.
+
+### Option C — `/team` slash command (future, roadmap phase C)
+
+Not built yet. When built, it will be a one-liner across all projects:
+
+```
+/team improvement regime-config bugs in trading-bot/src/regime/
+```
+
+The slash skill will load `PLAYBOOK.md` and parse args automatically.
 
 ## Quick start
 
-In any Claude Code session (after pre-flight):
+After pre-flight + invocation setup (option A or B above):
 
 - *"run the research team on how we should approach X"*
 - *"run the debate team on whether commit abc123 is safe to push"*
@@ -113,12 +151,13 @@ The lead resolves the template, spawns teammates with the right tools and model,
 
 ## Roadmap
 
-| Phase | Scope | Estimate |
+| Phase | Scope | Status |
 |---|---|---|
-| **A — v1 ship** | spec §14 phases 1–6 + G1–G5 patches + appendix B typo fix | ~7–8h |
-| **B — trading-bot integration** | project-scope roles + 2 trading-bot templates + backup includes | ~3–4h |
-| **C — system polish** | `/team` slash skill, history index, setup-folder mirror, overlap docs | ~2–3h |
-| **D — deferred** | Hermes cron → team trigger, dashboard card, template chaining, cost budgets | TBD |
+| **A — v1 ship** | spec §14 phases 1–6 + G1–G5 patches + appendix B typo fix | ✓ done 2026-05-14 |
+| **A.5 — post-impl refinements** | silence-breaker (replaces idle-breaker), inbox-path archiving, DM-based plan-approval (drops native plan mode), forced-close on verdict, `team_file_path` normalization, MANDATORY task lifecycle on all 10 roles | ✓ done 2026-05-14 PM |
+| **B — trading-bot integration** | project-scope roles + 2 trading-bot templates + backup includes + G4 CLAUDE.md propagation | pending · ~3–4h |
+| **C — `/team` slash skill** | invocation option C from "How to invoke a team" above — one-line cross-project invoker | pending · ~2–3h |
+| **D — deferred** | Hermes cron → team trigger, dashboard card, template chaining, cost budgets, history index | TBD |
 
 ## Known limitations (inherited from Claude Code)
 

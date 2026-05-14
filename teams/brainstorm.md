@@ -27,7 +27,7 @@ require_plan_approval: false
 limits:
   max_rounds: 2
   max_wall_minutes: 20
-  max_idle_minutes: 4
+  max_silence_minutes: 4
 ---
 
 # Brainstorm team

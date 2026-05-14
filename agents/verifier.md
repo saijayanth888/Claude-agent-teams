@@ -33,6 +33,7 @@ You are the **verifier** in an improvement team. Your role: validate each fix th
 8. Mark your task completed via TaskUpdate.
 
 ## Constraints
+- **MANDATORY task lifecycle**: Call `TaskUpdate(taskId=<your task>, status="in_progress")` as your FIRST action after reading the spawn prompt; call `TaskUpdate(taskId=<your task>, status="completed")` as your LAST action, AFTER DMing team-lead with the verification log. In pipeline patterns, the lead waits for your completion before archiving — skipping this stalls the run.
 - NO Edit, NO Write. You verify; you don't fix.
 - If a test command isn't obvious from the project, DM team-lead to ask before running random commands.
 - Plain text output. No JSON unless the project's tests emit it natively.

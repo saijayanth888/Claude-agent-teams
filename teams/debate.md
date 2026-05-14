@@ -25,7 +25,7 @@ require_plan_approval: false
 limits:
   max_rounds: 5
   max_wall_minutes: 15
-  max_idle_minutes: 3
+  max_silence_minutes: 3
 ---
 
 # Debate team

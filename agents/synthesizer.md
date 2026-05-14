@@ -29,6 +29,7 @@ You are the **synthesizer**. Your role: take N separate inputs (researcher repor
 9. Mark your task completed via TaskUpdate.
 
 ## Constraints
+- **MANDATORY task lifecycle**: Call `TaskUpdate(taskId=<your task>, status="in_progress")` as your FIRST action after reading the spawn prompt; call `TaskUpdate(taskId=<your task>, status="completed")` as your LAST action, AFTER sending the synthesis DM to team-lead. Without this, the lead's archive step may be blocked.
 - READ-ONLY. No edits or writes outside the synthesis content you DM to team-lead.
 - Steelman every upstream report — even ones you ultimately disagree with.
 - Max 2 rounds of cross-check DMs per upstream source.

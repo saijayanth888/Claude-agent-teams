@@ -27,7 +27,7 @@ require_plan_approval: true
 limits:
   max_rounds: 10
   max_wall_minutes: 60
-  max_idle_minutes: 5
+  max_silence_minutes: 5
 ---
 
 # Improvement team
@@ -38,9 +38,9 @@ Use this team when you've already identified that work needs to be done in a kno
 ## How members coordinate
 1. Lead spawns the scout. Scout audits target, produces issue list with file:line + severity.
 2. Scout DMs builder (kickoff handoff). [G2] Native task dependency: builder's task is blocked until scout's task completes.
-3. [G1] Builder enters plan mode. Produces plan: which files to touch, what changes, in what order. DMs team-lead for plan approval.
+3. [G1] Builder produces a plan doc (sections: `Files affected`, `Test impact`, `Rollback notes`) and DMs team-lead as plain text for approval. **Not** Claude Code's native plan-mode — a DM-based protocol where the lead is the approver.
 4. Team-lead approves OR rejects with feedback. Builder revises until approved.
-5. After approval, builder exits plan mode and implements fixes one at a time.
+5. After team-lead replies `approved`, builder implements fixes one at a time.
 6. After each fix: builder DMs verifier with `{ file, line, fix summary }`.
 7. [G2] Verifier's task is blocked until builder's task completes per-fix; verifier self-claims via task dependency.
 8. Verifier runs tests, smoke-checks, catches regressions. DMs builder with failures.

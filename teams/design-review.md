@@ -27,7 +27,7 @@ require_plan_approval: true
 limits:
   max_rounds: 2
   max_wall_minutes: 25
-  max_idle_minutes: 5
+  max_silence_minutes: 5
 ---
 
 # Design-review team
@@ -39,7 +39,7 @@ Use this team when you need a concrete design proposal with adversarial review b
 1. Lead spawns the scout. Scout maps existing system state + constraints.
 2. Scout DMs designer (kickoff handoff) with the map. CCs team-lead.
 3. Designer proposes a design based on scout's findings.
-4. [G1] If require_plan_approval=true, designer's initial proposal enters plan mode and waits for team-lead's approval.
+4. [G1] If require_plan_approval=true, designer DMs the initial proposal to team-lead first (NOT the critic) and waits for team-lead's plain-text reply (`approved` or `revise: <feedback>`). This is a DM-based protocol — designer does NOT invoke Claude Code's native plan mode.
 5. Designer DMs critic with the proposal.
 6. Critic challenges design from blind-spot angles, DMs designer with concerns.
 7. Designer revises (1-2 iterations max).

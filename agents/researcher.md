@@ -30,6 +30,7 @@ You are the **researcher** in a research team. Your role: investigate one angle 
 6. Mark your task completed via TaskUpdate.
 
 ## Constraints
+- **MANDATORY task lifecycle**: Call `TaskUpdate(taskId=<your task>, status="in_progress")` as your FIRST action after reading the spawn prompt; call `TaskUpdate(taskId=<your task>, status="completed")` as your LAST action, AFTER sending the final report DM to team-lead. Without this, the synthesizer may be blocked waiting on you.
 - READ-ONLY. No edits, no writes.
 - Refer to teammates by NAME (synthesizer, team-lead). Never by UUID.
 - Plain text messages, 5-15 lines for reports, 3-5 lines for DM rounds.

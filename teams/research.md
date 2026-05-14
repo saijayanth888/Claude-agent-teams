@@ -25,7 +25,7 @@ require_plan_approval: false
 limits:
   max_rounds: 3
   max_wall_minutes: 30
-  max_idle_minutes: 5
+  max_silence_minutes: 5
 ---
 
 # Research team

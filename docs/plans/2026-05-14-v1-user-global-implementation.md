@@ -1935,3 +1935,25 @@ Update `~/.claude/projects/-home-saijayanthai-Documents-trading-bot/memory/proje
 - ✅ Placeholder scan: no "TBD" or "TODO" or "implement later" or "fill in details" appears in any task body.
 - ✅ Type consistency: every role name used in a template's `members` list appears as a file in Task 2–11. Every pattern named in a template appears in PLAYBOOK §4. Tool names (Read, Grep, Edit, Write, Bash, etc.) consistent across all roles.
 - ✅ Scope: single deliverable (user-global library). Project-scope extension (Phase B) is OUT of this plan — separate plan once v1 lands.
+
+---
+
+## Post-implementation amendments (2026-05-14 PM)
+
+After v1 shipped, a live smoke test of the `debate` pattern (`/home/saijayanthai/Documents/claude-agent-teams/agents/.claude/agent-team-runs/debate-2026-05-14T18-30/`) exposed six gaps between the spec/plan and actual SDK behavior. Refinements were applied to the **authoritative files** (PLAYBOOK.md + agents/*.md + teams/*.md). This plan is NOT retroactively edited — see [spec Appendix D](../specs/2026-05-14-claude-code-agent-teams-design.md#appendix-d--post-implementation-refinements-2026-05-14-pm) for the canonical change list. Summary:
+
+1. **`max_idle_minutes` → `max_silence_minutes`** — idle is normal SDK state, not stuckness. Redefined to count only substantive DMs.
+2. **Transcript path** — `<team_file_path>/inboxes/*.json` (the spec never named the path).
+3. **Plan-approval is DM-based**, not native `EnterPlanMode` (which waits on the operator, not the lead — would have deadlocked).
+4. **Forced-close on verdict** — lead closes tasks when teammate DMs verdict but skips status transition.
+5. **`team_file_path`** from `TeamCreate` is normalized — never construct paths from `team_name`.
+6. **`TaskCreate` has no dep param** — G2 deps use `TaskUpdate.addBlockedBy` in a 2-pass setup.
+
+Plus:
+7. **`TeamDelete` leaves residuals** — manual `rm -rf` after capturing into archive.
+8. **Invocation prerequisite** — Claude Code doesn't auto-load PLAYBOOK.md; one of 3 options (CLAUDE.md pointer / explicit prefix / future `/team` slash) must be in place. See README "How to invoke a team" and diagram Panel 6.
+
+Open follow-ups (not done yet):
+- G4 CLAUDE.md propagation (lead should include `<cwd>/CLAUDE.md` in spawn prompts) — required before trading-bot run.
+- `/team` slash command (roadmap phase C).
+- Post-fix live verification of `improvement` (highest-risk pattern) + the other three.

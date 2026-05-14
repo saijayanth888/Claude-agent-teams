@@ -910,14 +910,61 @@ the artifact under review. Find real bugs, not theoretical ones.
 
 ## Appendix C — Diagram (mental model)
 
-See: [pictures embedded in chat 2026-05-14, panels 1-3]
-Panel 1: Filesystem layout
-Panel 2: Invocation flow lifecycle
-Panel 3: The 5 communication patterns side-by-side
+Implemented at `docs/diagrams/agent-teams-architecture.svg`. Six panels:
 
-(Will be reproduced in `~/.claude/agent-team-templates/docs/` as `.svg` once
-implementation phase begins.)
+- Panel 1: Filesystem & role resolution
+- Panel 2: Invocation lifecycle (lead's 6 stages)
+- Panel 3: The 5 communication patterns side-by-side
+- Panel 4: Roadmap
+- Panel 5: Mental model — the hierarchy is already there (§3.4)
+- Panel 6: How to invoke a team (3 options; added in post-impl refinements)
 
 ---
 
-**End of v1 design spec.**
+## Appendix D — Post-implementation refinements (2026-05-14 PM)
+
+A live smoke test of the `debate` pattern after v1 ship exposed six gaps between this spec's design and the SDK's actual behavior. Refinements were applied to the **authoritative files** (PLAYBOOK.md, all 10 `agents/*.md`, all 5 `teams/*.md`) but NOT retroactively to this spec — the spec stays as the 2026-05-14 design snapshot. The list below is the diff between the original design and current operative behavior.
+
+### D.1 Circuit breaker rename — `max_idle_minutes` → `max_silence_minutes`
+
+The SDK treats per-teammate `idle` as the normal post-turn state — every teammate goes idle after every message. The original "no activity for X min ⇒ force shutdown" semantic would have killed runs during normal pauses.
+
+**New definition**: silence = wall-clock since the most recent substantive (non-idle, non-shutdown, non-task-assignment) DM landed in any teammate's inbox. Idle notifications do NOT count as activity. See PLAYBOOK Circuit Breakers.
+
+### D.2 Archive transcript path — `<team_file_path>/inboxes/*.json`
+
+The spec's §10 listed `comms/transcript.md` as "full DM log (read from team task store)" but never specified the storage path. The actual SDK persists DMs at `<team_file_path>/inboxes/<teammate-name>.json` (JSON array of `{from, text, timestamp, ...}`). PLAYBOOK Stage 5 step 18 now spells out the assembly and filter rules (drop idle_notification, shutdown_request, shutdown_response, shutdown_approved, task_assignment).
+
+### D.3 Plan-approval is DM-based, not native plan mode
+
+The spec described G1 as the teammate "entering plan mode" and the lead approving. In practice, Claude Code's native `EnterPlanMode` waits for **operator** approval, not lead approval, so it would deadlock. PLAYBOOK + builder/designer/improvement/design-review now describe a DM-based protocol: teammate DMs a structured plan doc to team-lead; lead replies plain text `approved` or `revise: <feedback>`. The teammate must NOT invoke `EnterPlanMode`.
+
+### D.4 Forced-close on verdict (status-transition fallback)
+
+Teammates frequently DM their final verdict and go idle without calling `TaskUpdate(status="completed")`. In pipeline patterns this would deadlock the downstream task chain (G2). PLAYBOOK Stage 5 step 13 now mandates the lead force-close tasks on verdict-receipt regardless. All 10 role specs were updated to put `MANDATORY task lifecycle` as the first constraint, but the lead-side fallback exists for when teammates skip it anyway.
+
+### D.5 `team_file_path` normalization
+
+`TeamCreate` may lowercase/normalize the team name when persisting (e.g., `debate-2026-05-14T18-30` → `debate-2026-05-14t18-30`). The lead must use the `team_file_path` returned by `TeamCreate` for all subsequent file reads — never construct it from `team_name`. PLAYBOOK Stage 2 step 7 + Glossary.
+
+### D.6 `TaskCreate` has no dependency parameter — use `TaskUpdate.addBlockedBy`
+
+G2 task dependencies require a 2-pass setup: call `TaskCreate` for all tasks, then `TaskUpdate(taskId=<downstream>, addBlockedBy=[<upstream>])` for each dependency. The spec implied a single-call dep model. PLAYBOOK Stage 2 step 9 spells out the 2-pass flow.
+
+### D.7 (Bonus) `TeamDelete` leaves residual files
+
+After `TeamDelete`, files may remain in `<team_file_path>/inboxes/` and `~/.claude/tasks/<team_name>/`. PLAYBOOK Stage 5 step 19 instructs the lead to verify cleanup and `rm -rf` residuals manually.
+
+### D.8 Invocation prerequisite — `PLAYBOOK.md` is not auto-loaded
+
+Claude Code does NOT automatically read `PLAYBOOK.md` when the operator says "run the X team". One of three invocation options must be in place: (A) a `CLAUDE.md` pointer in the project; (B) explicit per-invocation prefix; (C) a future `/team` slash command. See README "How to invoke a team" section and diagram Panel 6.
+
+### Open follow-ups
+
+- **G4 CLAUDE.md propagation** — still unimplemented. Spec §14 listed it as a patch; PLAYBOOK doesn't currently instruct the lead to include `<cwd>/CLAUDE.md` in teammate spawn prompts. Required before first trading-bot run.
+- **`/team` slash command (option C)** — roadmap phase C.
+- **Post-fix live verification** — only `debate` has been smoke-tested. `improvement` (highest-risk pattern) and the other three remain unverified after refinements.
+
+---
+
+**End of v1 design spec.** Operative source of truth for current behavior is `PLAYBOOK.md` at the repo root.
