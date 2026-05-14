@@ -258,6 +258,29 @@ Constraints:
 3. **`skills` and `mcpServers` frontmatter fields are SILENTLY IGNORED when the role is used as a teammate.** They DO apply when the same role is invoked as a standalone subagent. **Do not write role files that depend on those fields.**
 4. **Permissions are inherited from the lead at spawn time.** A role file cannot set per-teammate permissions. The lead's `--dangerously-skip-permissions`, if set, propagates to every teammate.
 
+### 3.4 Mental model — the hierarchy is already there
+
+It's natural to wonder if the system needs an additional coordinator layer above the team lead — a product owner above a tech lead above developers. It doesn't. That hierarchy is already baked into the architecture; it just isn't labeled.
+
+| Layer | Who plays it | Responsibility |
+|---|---|---|
+| **Product owner** | the operator | sets goals, picks the template, accepts or rejects the deliverable |
+| **Tech lead** | the main Claude Code session (= team lead) | translates goal → team plan, spawns teammates, judges plan approvals, enforces circuit breakers, synthesizes `summary.md` |
+| **Developers** | the spawned teammates | execute focused, scoped tasks; coordinate via DMs and the shared task list |
+
+The lead is **not** a thin task-router. It is the tech lead: it judges plan-approval requests (§8.5, planned), enforces the three circuit breakers (§8.1), and writes the final synthesis. The operator is the PO: they set scope, accept the verdict, and decide what happens next.
+
+This framing matters when explaining the system to a second operator. It makes "where does my intent end and Claude's autonomy begin" obvious: at the PO ↔ tech-lead handoff — the moment you say "run the X team on Y" and the lead takes over until it hands you back a `summary.md`.
+
+**Vocabulary note**: Claude Code's primitive is literally called the *team lead*. "Tech lead" is the mental model; "team lead" is the implementation term. The two refer to the same Claude session.
+
+**Two things this framing deliberately does NOT do:**
+
+1. It does NOT add a `product-owner` or `tech-lead` role file to `~/.claude/agents/`. The PO is the operator. The tech lead is the main session. Codifying them as spawnable roles would falsely suggest they can be swapped, which Claude Code's "lead is fixed" limitation forbids.
+2. It does NOT rename anything in code or configs. Pure documentation framing.
+
+When v2 introduces template chaining (§16), the vocabulary upgrades cleanly: the PO chains multiple tech-lead engagements end-to-end.
+
 ---
 
 ## 4. The 5 teams
