@@ -14,6 +14,7 @@ The library is **project-agnostic**. The same templates serve any codebase. Proj
 
 ## Browse
 
+- [**project-CLAUDE.md**](project-CLAUDE.md) — **copy this into any project's `CLAUDE.md` to enable agent-teams there**
 - [PLAYBOOK](PLAYBOOK.md) — the lead's 6-stage algorithm; authoritative for all team runs
 - [Design spec](docs/specs/2026-05-14-claude-code-agent-teams-design.md) — 16 sections, full v1 architecture + G1–G5 patches + §3.4 hierarchy framing (see appendix D for post-impl refinements)
 - [Architecture diagram](docs/diagrams/agent-teams-architecture.svg) — 6 panels, dark monospace (Panel 6 = invocation options)
@@ -103,51 +104,112 @@ claude --version
         └── comms/transcript.md   (assembled from ~/.claude/teams/.../inboxes/)
 ```
 
-## How to invoke a team
+## Using this in any project
 
-Claude Code does **not** auto-load `PLAYBOOK.md` when you say "run the X team". One of the three options below must be in place, or the lead will improvise instead of following the 6-stage orchestration. See [diagram Panel 6](docs/diagrams/agent-teams-architecture.svg) for the visual.
+End-to-end flow. Three steps, then you're using teams from any codebase.
+
+### Step 1 — Global install (once per machine)
+
+You've done this if `install.sh` ran successfully. It symlinked the 10 role files into `~/.claude/agents/` and this repo into `~/.claude/agent-team-templates/`. The Pre-flight section above covers the `settings.json` env + `teammateMode` flags that also need to be set globally.
+
+Verify:
+
+```bash
+ls ~/.claude/agents/        # should list 10 role .md files
+ls ~/.claude/agent-team-templates/PLAYBOOK.md   # should exist
+grep CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS ~/.claude/settings.json
+```
+
+### Step 2 — Per-project setup (30 seconds, once per project)
+
+Copy [`project-CLAUDE.md`](project-CLAUDE.md) from this repo into the project where you want to use teams. Two options:
+
+**If the project has no `CLAUDE.md` yet:**
+
+```bash
+cp ~/.claude/agent-team-templates/project-CLAUDE.md /path/to/your-project/CLAUDE.md
+```
+
+**If the project already has a `CLAUDE.md`:** open it and append the contents of `project-CLAUDE.md` (the `## Agent Teams` section).
+
+This is the recommended **Option A** invocation path (see [diagram Panel 6](docs/diagrams/agent-teams-architecture.svg)). Without this step, the main Claude Code session won't know to follow `PLAYBOOK.md` when you invoke a team.
+
+### Step 3 — Invoke a team
+
+Open Claude Code in the project directory. Type a natural-language request:
+
+- *"run the research team on what's causing the v4 parity oracle false positives"*
+- *"run the debate team on whether commit abc123 is safe to push"*
+- *"run the brainstorm team on refactor approaches for the regime config"*
+- *"run the design-review team on a new shadow-mode toggle"*
+- *"run the improvement team to fix bugs in src/regime/"*
+
+The main session reads `PLAYBOOK.md` (because step 2 told it to), spawns the right teammates, orchestrates the pattern, and writes results to `<project>/.claude/agent-team-runs/<run-id>/`.
+
+### Picking which team
+
+| You want to … | Use |
+|---|---|
+| explore an open-ended question from multiple angles | `research` |
+| make a yes/no decision and stress-test it | `debate` |
+| generate a wide set of options before narrowing | `brainstorm` |
+| design something new, with critique built in | `design-review` |
+| **actually fix code** (only team that edits files) | `improvement` |
+
+### What happens after invoke (the 6 stages)
+
+The team-lead (your main Claude Code session) runs:
+
+1. **Resolve** — picks the template from `teams/`, confirms role files exist
+2. **Create team + tasks** — `TeamCreate`, `TaskCreate` per teammate
+3. **Spawn** — `Agent(subagent_type, team_name, name, prompt)` for each role
+4. **Orchestrate** — runs the pattern, enforces 3 circuit breakers (rounds, wall time, silence)
+5. **Collect & archive** — assembles transcripts, writes `summary.md` and `manifest.json`
+6. **Report** — inline summary in the conversation + pointer to the archive
+
+Output directory:
+
+```
+<your-project>/.claude/agent-team-runs/<run-id>/
+├── manifest.json     ← metadata, token cost estimate, members list
+├── summary.md        ← the synthesis (the thing you read)
+├── members/<role>.md ← each teammate's final verdict
+└── comms/transcript.md ← full DM log between teammates
+```
+
+### Caveat before running `improvement`
+
+**G4 (CLAUDE.md propagation) is not yet implemented.** When the lead spawns a builder, it doesn't automatically include your project's CLAUDE.md content in the builder's prompt. For `improvement` runs (the only team that edits files), include any critical conventions inline in your invocation:
+
+> *"run improvement on src/regime/ — use poetry for tests, don't touch the secrets/ directory, follow the existing logging pattern in regime/handlers.py"*
+
+The read-only teams (`research`, `debate`, `brainstorm`, `design-review`) don't edit code, so this caveat doesn't block them.
+
+## How to invoke a team — deeper reference (3 options)
+
+The walkthrough above uses Option A. Two other invocation paths exist; pick whichever fits. See [diagram Panel 6](docs/diagrams/agent-teams-architecture.svg) for the visual side-by-side.
 
 ### Option A — Project `CLAUDE.md` pointer (recommended, works today)
 
-One-time setup per project. Add this section to `<project>/CLAUDE.md`:
-
-```markdown
-## Agent Teams
-
-When the operator says "run the X team on Y" (where X is one of: research, debate, brainstorm, design-review, improvement), read `~/.claude/agent-team-templates/PLAYBOOK.md` and follow its 6-stage algorithm step by step. Do not improvise; the PLAYBOOK is authoritative.
-```
-
-After that, every invocation in this project is natural language: *"run the improvement team on the regime-config bugs"*.
+Covered in the walkthrough above. Copy [`project-CLAUDE.md`](project-CLAUDE.md) into your project's `CLAUDE.md`. Natural-language invocation thereafter.
 
 ### Option B — Explicit per-invocation (works today, friction)
 
-No setup. Each invocation must include the PLAYBOOK pointer:
+No setup. Each invocation must include the PLAYBOOK pointer inline:
 
 > *"Follow `~/.claude/agent-team-templates/PLAYBOOK.md` and run the improvement team on the regime-config bugs."*
 
-Easy to forget the prefix; otherwise the lead won't follow the protocol.
+Easy to forget the prefix; otherwise the lead won't follow the protocol. Use this if you only need teams once or twice in a project and don't want to edit `CLAUDE.md`.
 
 ### Option C — `/team` slash command (future, roadmap phase C)
 
-Not built yet. When built, it will be a one-liner across all projects:
+Not built yet. When shipped, it will be a one-liner across all projects with zero per-project setup:
 
 ```
 /team improvement regime-config bugs in trading-bot/src/regime/
 ```
 
 The slash skill will load `PLAYBOOK.md` and parse args automatically.
-
-## Quick start
-
-After pre-flight + invocation setup (option A or B above):
-
-- *"run the research team on how we should approach X"*
-- *"run the debate team on whether commit abc123 is safe to push"*
-- *"run the brainstorm team on design alternatives for Y"*
-- *"run the design-review team on the new auth flow"*
-- *"run the improvement team to fix all bugs in module Z"*
-
-The lead resolves the template, spawns teammates with the right tools and model, enforces circuit breakers, and writes results to `<cwd>/.claude/agent-team-runs/<run-id>/`.
 
 ## Roadmap
 
